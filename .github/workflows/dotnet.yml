@@ -27,10 +27,10 @@ jobs:
     
     # API Project
     - name: Restore dependencies
-      run: dotnet restore Zimozi.Assessment/Zimozi.Assessment.csproj
+      run: dotnet restore ZimoziAssessment/Zimozi.Assessment.csproj
     
     - name: Build API
-      run: dotnet build Zimozi.Assessment/Zimozi.Assessment.csproj --no-restore
+      run: dotnet build ZimoziAssessment/Zimozi.Assessment.csproj --no-restore
       
     # Unit Test Project
     - name: Restore test dependencies
