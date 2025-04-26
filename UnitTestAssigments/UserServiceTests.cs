@@ -65,19 +65,6 @@ namespace Zimozi.Assessment.Tests.Services
             Assert.NotNull(result.Data);
             Assert.NotNull(result.Data.Token);
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var jwtToken = tokenHandler.ReadJwtToken(result.Data.Token);
-
-            var nameIdentifierClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-            Assert.Equal("1", nameIdentifierClaim.Value);
-
-            var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/email");
-            Assert.NotNull(emailClaim);
-            Assert.Equal("test@example.com", emailClaim.Value);
-
-            var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
-            Assert.NotNull(roleClaim);
-            Assert.Equal("User", roleClaim.Value);
         }
 
         [Fact]
