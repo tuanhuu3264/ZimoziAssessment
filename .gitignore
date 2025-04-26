@@ -87,5 +87,8 @@ local.settings.json
 # Rider
 .idea/
 
-obj 
-bin
+ZimoziAssessment/obj 
+ZimoziAssessment/bin
+
+UnitTestAssigments/obj 
+UnitTestAssigments/bin
