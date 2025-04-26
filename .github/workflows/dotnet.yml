@@ -1,4 +1,4 @@
-name: .NET
+name: .NET CI/CD Pipeline
 
 on:
   push:
@@ -7,17 +7,94 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - name: Restore dependencies for Unit Test
-      run: dotnet restore ./UnitTestAssigments/UnitTestAssigments.csproj
-    - name: Build Unit Test
-      run: dotnet build ./UnitTestAssigments/UnitTestAssigments.csproj --no-restore
-    - name: Test
-      run: dotnet test ./UnitTestAssigments/UnitTestAssigments.csproj --no-build --verbosity normal
+    
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+    
+    # API Project
+    - name: Restore dependencies
+      run: dotnet restore Zimozi.Assessment/Zimozi.Assessment.csproj
+    
+    - name: Build API
+      run: dotnet build Zimozi.Assessment/Zimozi.Assessment.csproj --no-restore
+      
+    # Unit Test Project
+    - name: Restore test dependencies
+      run: dotnet restore UnitTestAssigments/UnitTestAssigments.csproj
+    
+    - name: Build tests
+      run: dotnet build UnitTestAssigments/UnitTestAssigments.csproj --no-restore
+    
+    - name: Run tests
+      run: dotnet test UnitTestAssigments/UnitTestAssigments.csproj --no-build --verbosity normal
+    
+    # Thông báo Discord khi build/test thành công hoặc thất bại
+    - name: Discord Notification - Build & Test
+      uses: Ilshidur/action-discord@master
+      if: always()
+      with:
+        args: |
+          📋 **Build & Test:** ${{ job.status }}
+          🔄 **Repository:** ${{ github.repository }}
+          🛠️ **Branch:** ${{ github.ref_name }}
+          👤 **Author:** ${{ github.actor }}
+          🔗 **Commit:** ${{ github.event.after }}
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+  
+  deploy:
+    needs: build-and-test
+    if: success() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger Render Deploy
+      id: render-deploy
+      run: |
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"clearCache\": true,
+            \"trigger\": \"github-action\",
+            \"commitSHA\": \"${{ github.sha }}\",
+            \"timestamp\": \"$TIMESTAMP\",
+            \"branch\": \"${{ github.ref_name }}\",
+            \"user\": \"${{ github.actor }}\"
+          }" \
+          ${{ secrets.RENDER_WEBHOOK_URL }})
+        
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "http_status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+        fi
+    
+    # Thông báo Discord khi deploy thành công hoặc thất bại
+    - name: Discord Notification - Deploy
+      uses: Ilshidur/action-discord@master
+      if: always()
+      with:
+        args: |
+          🚀 **Deploy to Render:** ${{ steps.render-deploy.outputs.status == 'success' && 'Thành công ✅' || 'Thất bại ❌' }}
+          🔄 **Repository:** ${{ github.repository }}
+          🛠️ **Branch:** ${{ github.ref_name }}
+          👤 **Developer:** ${{ github.actor }}
+          ${{ steps.render-deploy.outputs.status != 'success' && format('❗ **HTTP Status:** {0}', steps.render-deploy.outputs.http_status) || '🌐 **App URL:** https://your-app-name.onrender.com' }}
+          ⏱️ **Time:** ${{ steps.render-deploy.outputs.timestamp || github.event.repository.updated_at }}
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
