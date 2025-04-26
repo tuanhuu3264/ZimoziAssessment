@@ -16,11 +16,13 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-    - name: Restore dependencies
+    - name: Restore dependencies application
       run: dotnet restore ./ZimoziAssessment/Zimozi.Assessment.csproj
-    - name: Build
+    - name: Build application
       run: dotnet build ./ZimoziAssessment/Zimozi.Assessment.csproj --no-restore
-    - name: Build
+    - name: Restore dependencies test
+      run: dotnet restore ./ZimoziAssessment/Zimozi.Assessment.csproj
+    - name: Build test
       run: dotnet build ./UnitTestAssigments/UnitTestAssigments.csproj --no-restore
-    - name: Test
+    - name: Run test
       run: dotnet test ./UnitTestAssigments/UnitTestAssigments.csproj --no-build --verbosity normal
