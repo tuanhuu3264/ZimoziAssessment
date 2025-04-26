@@ -20,5 +20,7 @@ jobs:
       run: dotnet restore ./ZimoziAssessment/Zimozi.Assessment.csproj
     - name: Build
       run: dotnet build ./ZimoziAssessment/Zimozi.Assessment.csproj --no-restore
+    - name: Build
+      run: dotnet build ./UnitTestAssigments/UnitTestAssigments.csproj --no-restore
     - name: Test
       run: dotnet test ./UnitTestAssigments/UnitTestAssigments.csproj --no-build --verbosity normal
